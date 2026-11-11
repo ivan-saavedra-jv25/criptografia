@@ -4,6 +4,8 @@ CLI en TypeScript sobre el módulo `crypto` de Node.js. Permite:
 
 - `prng`: generar valores pseudoaleatorios (CSPRNG del sistema operativo).
 - `cipher` / `decipher`: cifrar y descifrar archivos con AES-CBC.
+- `hash`: calcular el hash de un archivo.
+- `hmac`: calcular el HMAC de un archivo con una clave secreta.
 
 ## Requisitos
 
@@ -14,13 +16,17 @@ CLI en TypeScript sobre el módulo `crypto` de Node.js. Permite:
 
 ```
 src/
-├── index.ts        # CLI (yargs): comandos `prng`, `cipher` y `decipher`
+├── index.ts        # CLI (yargs): comandos `prng`, `cipher`, `decipher`, `hash` y `hmac`
 ├── prng/
 │   └── index.ts    # Generación (bytes, int, uuid)
 ├── cipher/
 │   └── index.ts    # Cifrado de archivos (AES-CBC)
-└── decipher/
-    └── index.ts    # Descifrado de archivos (AES-CBC)
+├── decipher/
+│   └── index.ts    # Descifrado de archivos (AES-CBC)
+├── hash/
+│   └── index.ts    # Hash de archivos
+└── hmac/
+    └── index.ts    # HMAC de archivos
 ```
 
 ## Uso general
@@ -190,6 +196,69 @@ File decrypted: recuperado.txt
 
 ---
 
+## Comando 5: `hash`
+
+```bash
+npm run dev -- hash -i test-files/secreto.txt
+npm run dev -- hash -a md5 --encoding base64 -i test-files/secreto.txt
+```
+
+### Opciones
+
+| Opción        | Alias | Default  | Descripción                            |
+| ------------- | ----- | -------- | -------------------------------------- |
+| `--input`     | `-i`  | —        | **Requerida.** Archivo a procesar      |
+| `--algorithm` | `-a`  | `sha256` | Algoritmo (`sha256`, `sha512`, `md5`…) |
+| `--encoding`  |       | `hex`    | `hex`, `base64` o `base64url`          |
+
+### Cómo funciona
+
+Lee el archivo y calcula `crypto.createHash(algorithm).update(contenido).digest(encoding)`. Imprime el resultado en consola.
+
+### Resultado esperado
+
+Con SHA-256 y `hex`, 64 caracteres. Es igual al de `shasum -a 256 <archivo>`:
+
+```
+133ee989293f92736301280c6f14c89d521200c17dcdcecca30cd20705332d44
+```
+
+Un algoritmo no soportado falla con `Digest method not supported`.
+
+---
+
+## Comando 6: `hmac`
+
+```bash
+npm run dev -- hmac -k miClave -i test-files/secreto.txt
+npm run dev -- hmac -a sha512 -k miClave --encoding base64 -i test-files/secreto.txt
+```
+
+### Opciones
+
+| Opción        | Alias | Default  | Descripción                            |
+| ------------- | ----- | -------- | -------------------------------------- |
+| `--key`       | `-k`  | —        | **Requerida.** Clave secreta           |
+| `--input`     | `-i`  | —        | **Requerida.** Archivo a firmar        |
+| `--algorithm` | `-a`  | `sha256` | Algoritmo hash                         |
+| `--encoding`  |       | `hex`    | `hex`, `base64` o `base64url`          |
+
+### Cómo funciona
+
+Calcula `crypto.createHmac(algorithm, key).update(contenido).digest(encoding)`. A diferencia de `hash`, el resultado depende también de la clave: sirve para verificar **integridad y autenticidad**.
+
+### Resultado esperado
+
+Con SHA-256 y `hex`, 64 caracteres. Es igual al de `openssl dgst -sha256 -hmac <clave> <archivo>`:
+
+```
+8cdcc9e00f824a6d31f36a186ef08d6837bf68b78ab05d1135ecf4d45b30798c
+```
+
+Cambia si cambia el contenido del archivo o la clave. `--key` en la línea de comandos queda guardada en el historial del shell.
+
+---
+
 ## Compilar y ejecutar sin tsx
 
 ```bash
@@ -205,4 +274,5 @@ node dist/index.js prng --type bytes
 | `Invalid values: Argument: type`                       | `--type` fuera de `bytes/int/uuid`   | Usar un valor válido              |
 | `ENOENT: no such file or directory`                    | El archivo `--input` no existe       | Revisar la ruta                   |
 | `Archivo inválido: falta el IV`                        | Archivo cifrado con menos de 16 bytes | Volver a cifrar el original      |
+| `Digest method not supported`                          | `--algorithm` no soportado           | Usar `sha256`, `sha512`, `md5`…   |
 | `bad decrypt`                                          | Contraseña, sal o `--size` distintos | Usar los mismos que al cifrar     |
