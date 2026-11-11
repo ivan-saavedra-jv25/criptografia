@@ -1,8 +1,27 @@
 import yargs from 'yargs';
+import type { Options } from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import prng from './prng/index.js';
 import cipher from './cipher/index.js';
 import decipher from './decipher/index.js';
+import hash from './hash/index.js';
+import hmac from './hmac/index.js';
+
+// Opciones de entrada/salida compartidas por cipher, decipher y hash
+const ioOptions = {
+    input: {
+        alias: 'i',
+        type: 'string',
+        description: 'Input file path',
+        demandOption: true,
+    },
+    output: {
+        alias: 'o',
+        type: 'string',
+        description: 'Output file path',
+        demandOption: true,
+    },
+} as const satisfies Record<string, Options>;
 
 yargs(hideBin(process.argv))
     .command({
@@ -55,18 +74,7 @@ yargs(hideBin(process.argv))
                     description: 'AES key size in bits',
                     default: 256 as const,
                 },
-                input: {
-                    alias: 'i',
-                    type: 'string',
-                    description: 'Input file path',
-                    demandOption: true,
-                },
-                output: {
-                    alias: 'o',
-                    type: 'string',
-                    description: 'Output file path',
-                    demandOption: true,
-                },
+                ...ioOptions,
             }),
         handler: async ({ password, salt, size, input, output }) => {
             await cipher(password, salt, size, input, output);
@@ -95,22 +103,64 @@ yargs(hideBin(process.argv))
                     description: 'AES key size in bits',
                     default: 256 as const,
                 },
-                input: {
-                    alias: 'i',
-                    type: 'string',
-                    description: 'Input file path',
-                    demandOption: true,
-                },
-                output: {
-                    alias: 'o',
-                    type: 'string',
-                    description: 'Output file path',
-                    demandOption: true,
-                },
+                ...ioOptions,
             }),
         handler: async ({ password, salt, size, input, output }) => {
             await decipher(password, salt, size, input, output);
             console.log(`File decrypted: ${output}`);
+        },
+    })
+    .command({
+        command: 'hash',
+        describe: 'Generate a hash of a file',
+        builder: (y) =>
+            y.options({
+                algorithm: {
+                    alias: 'a',
+                    type: 'string',
+                    description: 'Hash algorithm to use',
+                    demandOption: true,
+                    default: 'sha256',
+                },
+                encoding: {
+                    choices: ['hex', 'base64', 'base64url'] as const,
+                    description: 'Encoding of the hash',
+                    default: 'hex' as const,
+                },
+                input: ioOptions.input,
+            }),
+        handler: ({ algorithm, encoding, input }) => {
+            console.log(hash(algorithm, encoding, input));
+        },
+    })
+
+    .command({
+        command: 'hmac',
+        describe: 'Generate a HMAC of a file',
+        builder: (y) =>
+            y.options({
+                algorithm: {
+                    alias: 'a',
+                    type: 'string',
+                    description: 'Hash algorithm to use',
+                    demandOption: true,
+                    default: 'sha256',
+                },
+                key: {
+                    alias: 'k',
+                    type: 'string',
+                    description: 'Secret key for the HMAC',
+                    demandOption: true,
+                },
+                input: ioOptions.input,
+                encoding: {
+                    choices: ['hex', 'base64', 'base64url'] as const,
+                    description: 'Encoding of the HMAC',
+                    default: 'hex' as const,
+                },
+            }),
+        handler: ({ algorithm, key, input, encoding }) => {
+            console.log(hmac(algorithm, key, input, encoding));
         },
     })
     .demandCommand(1, 'You need at least one command before moving on')

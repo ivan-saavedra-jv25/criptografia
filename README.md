@@ -126,7 +126,7 @@ a5592b43-ef6c-4076-a981-0e90bd7539d8
 ## Comando 3: `cipher`
 
 ```bash
-npm run dev -- cipher -p miClave --salt miSal -i secreto.txt -o secreto.bin
+npm run dev -- cipher -p miClave --salt miSal -i test-files/secreto.txt -o test-files/secreto.bin
 ```
 
 ### Opciones
@@ -162,7 +162,7 @@ File encrypted: secreto.bin
 ## Comando 4: `decipher`
 
 ```bash
-npm run dev -- decipher -p miClave --salt miSal -i secreto.bin -o recuperado.txt
+npm run dev -- decipher -p miClave --salt miSal -i test-files/secreto.bin -o test-files/recuperado.txt
 ```
 
 Usa las mismas opciones que `cipher`. `--input` es el archivo cifrado y `--output` el archivo recuperado.
