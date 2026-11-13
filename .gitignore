@@ -4,3 +4,6 @@ dist/
 
 # archivos de prueba (entradas y salidas de cipher/decipher/hash)
 test-files/
+
+# claves generadas por el comando keypair
+.secrets/
